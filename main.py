@@ -10,10 +10,22 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 
-landmarks_needed = {
-    'squat': [24, 26, 28], 
-    'push-up': [12, 14, 16], 
-    'plank': [12, 24, 26]
+#MAIN JOINT: DEPTH
+#SECONDARY JOINT: BODY ALIGNMENT
+
+EXERCISE_CONFIG = {
+    'squat': {
+        'knee': [24, 26, 28], # HIP, KNEE, ANKLE
+        'hip': [12, 24, 26] #SHOULDER, HIP,KNEE
+    },
+    'push-up': {
+        'elbow': [12, 14, 16], #SHOULDER, ELBOW, WRIST
+        'hip': [12, 24, 26] #SHOULDER, HIP, KNEE
+    },
+    'plank': {
+        'hip': [12, 24, 26], #SHOULDER, HIP, KNEE
+        'shoulder': [24, 12, 14] #HIP, SHOULDER, ELBOW
+    }
 }
 
 pose_opt = PoseLandmarkerOptions(
@@ -24,6 +36,7 @@ pose_opt = PoseLandmarkerOptions(
 
 video_squat = cv2.VideoCapture('./videos/squat.mp4')
 
+#module 1
 def extract_pose_vectors(video):
     video_landmarks_history = []
 
@@ -61,12 +74,11 @@ def extract_pose_vectors(video):
     video.release()
     return video_landmarks_history
 
+#module 2# Module 2 (Corrected Architecture)
 def angle_calculation(history, exercise):
     angles_dict = {}
-    
-    joint_ids = landmarks_needed[exercise]
-    upper_id, apex_id, lower_id = joint_ids[0], joint_ids[1], joint_ids[2]
-    
+    joints_involved = EXERCISE_CONFIG[exercise]
+
     for frame in history:
         stamp = frame['timestamp_ms']
         landmarks = frame['landmarks']
@@ -74,30 +86,36 @@ def angle_calculation(history, exercise):
         if not landmarks or len(landmarks) < 33:
             continue  
 
-        upper_point = landmarks[upper_id] 
-        apex_point  = landmarks[apex_id] 
-        lower_point = landmarks[lower_id]
+        frame_angles = {}
 
-        upper = np.array([upper_point['x'], upper_point['y']])
-        apex  = np.array([apex_point['x'], apex_point['y']])
-        lower = np.array([lower_point['x'], lower_point['y']])
+        for current_joint, joints_ids in joints_involved.items():
+            upper_id, apex_id, lower_id = joints_ids[0], joints_ids[1], joints_ids[2]
 
-        vector_u = upper - apex
-        vector_v = lower - apex
+            upper_point = landmarks[upper_id] 
+            apex_point  = landmarks[apex_id] 
+            lower_point = landmarks[lower_id]
 
-        angle_u = np.arctan2(vector_u[1], vector_u[0])
-        angle_v = np.arctan2(vector_v[1], vector_v[0])
+            upper = np.array([upper_point['x'], upper_point['y']])
+            apex  = np.array([apex_point['x'], apex_point['y']])
+            lower = np.array([lower_point['x'], lower_point['y']])
 
-        raw_angle = angle_v - angle_u
-        angle_degrees = np.abs(raw_angle * 180.0 / np.pi)
+            vector_u = upper - apex
+            vector_v = lower - apex
 
-        if angle_degrees > 180.0:
-            angle_degrees = 360.0 - angle_degrees
+            angle_u = np.arctan2(vector_u[1], vector_u[0])
+            angle_v = np.arctan2(vector_v[1], vector_v[0])
 
-        angles_dict[stamp] = angle_degrees
+            raw_angle = angle_v - angle_u
+            angle_degrees = np.abs(raw_angle * 180.0 / np.pi)
+
+            if angle_degrees > 180.0:
+                angle_degrees = 360.0 - angle_degrees
+
+            frame_angles[current_joint] = angle_degrees
+
+        angles_dict[stamp] = frame_angles
 
     return angles_dict
-
 landmarks_history = extract_pose_vectors(video_squat)
 angles = angle_calculation(landmarks_history, 'squat')
 print(angles)
