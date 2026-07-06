@@ -10,9 +10,6 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 
-#MAIN JOINT: DEPTH
-#SECONDARY JOINT: BODY ALIGNMENT
-
 EXERCISE_CONFIG = {
     'squat': {
         'knee': [24, 26, 28], # HIP, KNEE, ANKLE
@@ -36,7 +33,7 @@ pose_opt = PoseLandmarkerOptions(
 
 video_squat = cv2.VideoCapture('./videos/squat.mp4')
 
-#module 1
+# Module 1
 def extract_pose_vectors(video):
     video_landmarks_history = []
 
@@ -59,7 +56,7 @@ def extract_pose_vectors(video):
                 
                 for idx, landmark in enumerate(pose):
                     frame_vector.append({
-                        'id': idx,
+                        'id': idx+1,
                         'x': landmark.x,
                         'y': landmark.y,
                         'z': landmark.z,
@@ -74,7 +71,7 @@ def extract_pose_vectors(video):
     video.release()
     return video_landmarks_history
 
-#module 2# Module 2 (Corrected Architecture)
+# Module 2
 def angle_calculation(history, exercise):
     angles_dict = {}
     joints_involved = EXERCISE_CONFIG[exercise]
@@ -111,11 +108,21 @@ def angle_calculation(history, exercise):
             if angle_degrees > 180.0:
                 angle_degrees = 360.0 - angle_degrees
 
-            frame_angles[current_joint] = angle_degrees
+            frame_angles[current_joint] = float(angle_degrees)
 
         angles_dict[stamp] = frame_angles
 
     return angles_dict
+
 landmarks_history = extract_pose_vectors(video_squat)
+print(f'landmarks detected per timestamp.\n')
+
+for element in landmarks_history[-3:]:
+    ts, landmarks = element.items()
+    print(f'timestamp: {ts[1]}\nItems: {landmarks[1]}\n')
+
 angles = angle_calculation(landmarks_history, 'squat')
-print(angles)
+
+print(f'Angles extracted:\n')
+for ts, angles_extr in list(angles.items())[-10:]:
+    print(f"timestamp: {ts}\nAngles: {angles_extr}\n")
