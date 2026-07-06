@@ -44,6 +44,8 @@ def extract_pose_vectors(video):
                 break
                 
             frame = cv2.flip(frame, 1)
+            frame = cv2.GaussianBlur(frame, (5, 5), 0)
+
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
             
@@ -56,7 +58,7 @@ def extract_pose_vectors(video):
                 
                 for idx, landmark in enumerate(pose):
                     frame_vector.append({
-                        'id': idx+1,
+                        'id': idx + 1,
                         'x': landmark.x,
                         'y': landmark.y,
                         'z': landmark.z,
