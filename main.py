@@ -51,7 +51,7 @@ COMPARING_ANGLES = {
             'error_msg': 'Mantén tus hombros directamente sobre tus codos.'
         },
         'hip': {
-            'correct_threshold': [165, 180],
+            'correct_threshold': [150, 180],
             'error_msg': 'Mantén tu cuerpo en una línea recta sin elevar ni bajar la cadera.'
         }
     }
@@ -243,23 +243,17 @@ def posture_evaluation(data, exercise):
 
 
 if __name__ == '__main__':
-    video_squat = cv2.VideoCapture('./videos/bad_squat.mp4')
-    exercise = 'squat'
+    video_squat = cv2.VideoCapture('./videos/bad_plank.mp4')
+    exercise = 'plank'
 
 
     print(f"Module 1 execution:\n")
     landmarks_history = extract_pose_vectors(video_squat)
 
-    # for item in landmarks_history[:-5]:
-    #     print(item)
-
     print(f"Module 2 execution:\n")
     angles = angle_calculation(landmarks_history, exercise)
-    # print(angles)
 
     print(f"Module 3 execution:\n")
     evaluation = posture_evaluation(angles, exercise)
-    for item in evaluation:
-        if item['is_active']:
-            print(item)
-    
+    for element in evaluation[:-5]:
+        print(element)
